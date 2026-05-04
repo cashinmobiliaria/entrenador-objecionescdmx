@@ -467,7 +467,7 @@ Responde SOLO en este JSON sin ningún texto extra:
   try{
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','Access-Control-Allow-Origin':'*'},
       body:JSON.stringify({model:MODEL,max_tokens:1000,messages:[{role:'user',content:prompt}]})
     });
     const data=await resp.json();
