@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Entrenador de Objeciones — Cash Coach</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f5;color:#000;min-height:100vh;display:flex;flex-direction:column}
+  :root{--wine:#6c2838;--black:#000;--gray:#828282;--light:#ccc;--bg:#f5f5f5;--white:#fff}
+  header{background:var(--black);color:var(--white);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:1rem;font-weight:700;letter-spacing:.5px}
+  header span{font-size:.75rem;color:var(--light)}
+  .screen{display:none;flex:1;flex-direction:column;align-items:center;padding:32px 16px}
+  .screen.active{display:flex}
+  .card{background:var(--white);border-radius:12px;padding:28px;width:100%;max-width:640px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  h2{font-size:1.3rem;font-weight:700;margin-bottom:8px}
+  .sub{color:var(--gray);font-size:.9rem;margin-bottom:24px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
+  .grid.three{grid-template-columns:1fr 1fr 1fr}
+  .opt-btn{border:2px solid var(--light);background:var(--white);border-radius:8px;padding:14px 10px;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--black);transition:all .15s;text-align:center}
+  .opt-btn:hover{border-color:var(--wine);color:var(--wine)}
+  .opt-btn.selected{border-color:var(--wine);background:var(--wine);color:var(--white)}
+  .btn{background:var(--wine);color:var(--white);border:none;border-radius:8px;padding:14px 28px;font-size:.95rem;font-weight:700;cursor:pointer;width:100%;margin-top:16px;transition:opacity .15s}
+  .btn:hover{opacity:.88}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-sec{background:transparent;color:var(--wine);border:2px solid var(--wine);border-radius:8px;padding:12px 28px;font-size:.9rem;font-weight:700;cursor:pointer;width:100%;margin-top:10px;transition:all .15s}
+  .btn-sec:hover{background:var(--wine);color:var(--white)}
+  /* Progress */
+  .prog-bar{background:var(--light);border-radius:99px;height:6px;width:100%;margin-bottom:20px}
+  .prog-fill{background:var(--wine);height:6px;border-radius:99px;transition:width .3s}
+  .counter{font-size:.8rem;color:var(--gray);text-align:right;margin-bottom:4px}
+  /* Objection card */
+  .objection-box{background:var(--bg);border-left:4px solid var(--wine);border-radius:8px;padding:16px;margin-bottom:20px;font-size:1rem;font-weight:500;line-height:1.5}
+  .objection-meta{font-size:.75rem;color:var(--gray);margin-bottom:4px}
+  textarea{width:100%;border:2px solid var(--light);border-radius:8px;padding:12px;font-size:.92rem;font-family:inherit;resize:vertical;min-height:110px;transition:border .15s;outline:none}
+  textarea:focus{border-color:var(--wine)}
+  /* Evaluation */
+  .eval-loading{text-align:center;padding:32px 0}
+  .spinner{width:36px;height:36px;border:3px solid var(--light);border-top-color:var(--wine);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .eval-msg{color:var(--gray);font-size:.88rem}
+  /* Score */
+  .score-circle{width:100px;height:100px;border-radius:50%;border:6px solid var(--wine);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;color:var(--wine);margin:0 auto 16px}
+  .score-label{text-align:center;font-size:.85rem;color:var(--gray);margin-bottom:20px}
+  .method-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{border-radius:99px;padding:4px 12px;font-size:.75rem;font-weight:700}
+  .chip.green{background:#e6f4ea;color:#2d7a4f}
+  .chip.amber{background:#fff8e1;color:#b06a00}
+  .chip.red{background:#fde8e8;color:#c0392b}
+  .section-label{font-size:.78rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .analysis-block{background:var(--bg);border-radius:8px;padding:14px;margin-bottom:12px;font-size:.88rem;line-height:1.6}
+  /* Summary */
+  .summary-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bg)}
+  .summary-row:last-child{border-bottom:none}
+  .s-obj{font-size:.85rem;flex:1;margin-right:12px}
+  .s-score{font-weight:700;color:var(--wine);font-size:.95rem}
+  /* Review */
+  .review-card{background:var(--white);border-radius:10px;border:1px solid var(--light);margin-bottom:12px;overflow:hidden}
+  .review-header{padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:.88rem;font-weight:600}
+  .review-header:hover{background:var(--bg)}
+  .review-body{padding:0 16px 16px;font-size:.85rem;line-height:1.6;display:none}
+  .review-body.open{display:block}
+  .tag{display:inline-block;background:var(--wine);color:var(--white);border-radius:4px;padding:2px 8px;font-size:.7rem;font-weight:700;margin-bottom:8px}
+  footer{background:var(--black);color:var(--gray);text-align:center;padding:12px;font-size:.75rem;margin-top:auto}
+  footer strong{color:var(--white)}
+  @media(max-width:480px){.grid{grid-template-columns:1fr}.grid.three{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Entrenador de Objeciones Inmobiliarias</h1>
+  <span>Cash Coach Academy</span>
+</header>
+
+<!-- SCREEN: HOME -->
+<div class="screen active" id="s-home">
+  <div class="card" style="margin-top:24px;text-align:center">
+    <div style="font-size:2.5rem;margin-bottom:12px">🏠</div>
+    <h2>Entrena como un profesional</h2>
+    <p class="sub">Más de 130 objeciones reales del mercado inmobiliario mexicano. Evaluación con AIDA, SPIN y Feel-Felt-Found.</p>
+    <div style="display:flex;justify-content:center;gap:24px;margin:20px 0;flex-wrap:wrap">
+      <div style="text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--wine)">135</div><div style="font-size:.75rem;color:var(--gray)">Objeciones</div></div>
+      <div style="text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--wine)">4</div><div style="font-size:.75rem;color:var(--gray)">Tipos</div></div>
+      <div style="text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--wine)">3</div><div style="font-size:.75rem;color:var(--gray)">Niveles</div></div>
+    </div>
+    <button class="btn" onclick="goTo('s-tipo')">Comenzar entrenamiento</button>
+  </div>
+</div>
+
+<!-- SCREEN: TIPO -->
+<div class="screen" id="s-tipo">
+  <div class="card">
+    <h2>Tipo de operación</h2>
+    <p class="sub">¿En qué área quieres entrenar hoy?</p>
+    <div class="grid">
+      <button class="opt-btn" onclick="selectTipo(this,'Venta')">🏡 Venta</button>
+      <button class="opt-btn" onclick="selectTipo(this,'Preventa')">🏗️ Preventa</button>
+      <button class="opt-btn" onclick="selectTipo(this,'Renta')">🔑 Renta</button>
+      <button class="opt-btn" onclick="selectTipo(this,'Captación')">📋 Captación</button>
+    </div>
+    <button class="btn" id="btn-tipo" disabled onclick="goTo('s-nivel')">Continuar</button>
+  </div>
+</div>
+
+<!-- SCREEN: NIVEL -->
+<div class="screen" id="s-nivel">
+  <div class="card">
+    <h2>Nivel de dificultad</h2>
+    <p class="sub">Elige según tu experiencia actual</p>
+    <div class="grid three">
+      <button class="opt-btn" onclick="selectNivel(this,'Básico')">🟢<br/>Básico</button>
+      <button class="opt-btn" onclick="selectNivel(this,'Intermedio')">🟡<br/>Intermedio</button>
+      <button class="opt-btn" onclick="selectNivel(this,'Avanzado')">🔴<br/>Avanzado</button>
+    </div>
+    <button class="btn" id="btn-nivel" disabled onclick="goTo('s-cat')">Continuar</button>
+    <button class="btn-sec" onclick="goTo('s-tipo')">← Regresar</button>
+  </div>
+</div>
+
+<!-- SCREEN: CATEGORÍA -->
+<div class="screen" id="s-cat">
+  <div class="card">
+    <h2>Categoría</h2>
+    <p class="sub">Opcional — enfoca tu sesión o entrena todas las categorías</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px" id="cat-grid"></div>
+    <button class="btn" id="btn-cat" onclick="startSession()">Iniciar sesión →</button>
+    <button class="btn-sec" onclick="goTo('s-nivel')">← Regresar</button>
+  </div>
+</div>
+
+<!-- SCREEN: ENTRENAMIENTO -->
+<div class="screen" id="s-train">
+  <div class="card">
+    <div class="counter" id="counter">Objeción 1 de 10</div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:10%"></div></div>
+    <div class="objection-meta" id="obj-meta"></div>
+    <div class="objection-box" id="obj-text"></div>
+    <p style="font-size:.82rem;color:var(--gray);margin-bottom:8px">💬 ¿Cómo responderías a este cliente?</p>
+    <textarea id="user-answer" placeholder="Escribe tu respuesta aquí..." rows="5"></textarea>
+    <button class="btn" id="btn-eval" onclick="evalAnswer()">Evaluar respuesta</button>
+  </div>
+</div>
+
+<!-- SCREEN: RESULTADO INDIVIDUAL -->
+<div class="screen" id="s-result">
+  <div class="card">
+    <div class="score-circle" id="res-score">--</div>
+    <div class="score-label" id="res-label"></div>
+    <div class="method-chips" id="res-chips"></div>
+    <div class="section-label">Análisis</div>
+    <div class="analysis-block" id="res-analysis"></div>
+    <div class="section-label">Fortalezas</div>
+    <div class="analysis-block" id="res-strengths"></div>
+    <div class="section-label">Oportunidades de mejora</div>
+    <div class="analysis-block" id="res-improve"></div>
+    <div class="section-label">Respuesta sugerida</div>
+    <div class="analysis-block" id="res-suggested"></div>
+    <div id="eval-loading" class="eval-loading" style="display:none">
+      <div class="spinner"></div>
+      <div class="eval-msg">Analizando con AIDA, SPIN y Feel-Felt-Found...</div>
+    </div>
+    <button class="btn" id="btn-next" onclick="nextObj()">Siguiente objeción →</button>
+  </div>
+</div>
+
+<!-- SCREEN: RESUMEN FINAL -->
+<div class="screen" id="s-summary">
+  <div class="card">
+    <h2>Sesión completada 🎉</h2>
+    <p class="sub" id="sum-sub"></p>
+    <div class="score-circle" id="sum-score" style="margin-bottom:8px">--</div>
+    <div class="score-label">Score promedio</div>
+    <div style="margin:20px 0" id="sum-rows"></div>
+    <button class="btn" onclick="goReview()">Ver revisión detallada</button>
+    <button class="btn-sec" onclick="restart()">Nueva sesión</button>
+  </div>
+</div>
+
+<!-- SCREEN: REVISIÓN -->
+<div class="screen" id="s-review">
+  <div class="card">
+    <h2>Modo revisión</h2>
+    <p class="sub">Expande cada objeción para ver tu respuesta vs. la IA</p>
+    <div id="review-list"></div>
+    <button class="btn-sec" onclick="goTo('s-summary')">← Volver al resumen</button>
+    <button class="btn" onclick="restart()" style="margin-top:10px">Nueva sesión</button>
+  </div>
+</div>
+
+<footer>Powered by <strong>Cash Castañeda</strong> · Cash Coach Academy · CDMX</footer>
+
+<script>
+const API_KEY = "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";
+const MODEL = "claude-sonnet-4-20250514";
+
+// ── BANCO DE OBJECIONES ──────────────────────────────────────────────────────
+const OBJECIONES = [
+  // VENTA - BÁSICO
+  {tipo:"Venta",nivel:"Básico",cat:"Precio",texto:"Está muy caro para esa zona.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Precio",texto:"Vi algo más barato en internet.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Precio",texto:"No tenemos ese presupuesto.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Precio",texto:"¿Por qué cuesta más que el vecino?",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Tiempo",texto:"Déjame pensarlo unos días.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Tiempo",texto:"Todavía no es el momento.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Tiempo",texto:"Primero tengo que vender mi casa actual.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Financiamiento",texto:"No sé si me den el crédito.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Financiamiento",texto:"Tengo mal historial crediticio.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Producto",texto:"La casa me gusta pero el jardín es pequeño.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Producto",texto:"No me convence la distribución.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Confianza",texto:"¿Por qué confiar en ti y no en otro asesor?",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Zona",texto:"La colonia no me convence.",zona:"Narvarte"},
+  {tipo:"Venta",nivel:"Básico",cat:"Zona",texto:"Hay mucho tráfico por ahí.",zona:"Condesa"},
+  {tipo:"Venta",nivel:"Básico",cat:"Proceso",texto:"No entiendo bien cómo funciona la compra.",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Proceso",texto:"¿Y si hay problemas legales con el inmueble?",zona:null},
+  {tipo:"Venta",nivel:"Básico",cat:"Familia",texto:"Mi esposa/esposo no ha visto la propiedad.",zona:null},
+  // VENTA - INTERMEDIO
+  {tipo:"Venta",nivel:"Intermedio",cat:"Precio",texto:"Quiero que me des un descuento del 15% o no cerramos.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Precio",texto:"El avalúo me salió más bajo que el precio de venta.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Precio",texto:"Con el dólar como está, prefiero esperar.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Precio",texto:"En Polanco hay propiedades similares más baratas.",zona:"Polanco"},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Tiempo",texto:"El mercado está bajando, voy a esperar a que caiga más.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Tiempo",texto:"Quiero ver al menos 20 propiedades antes de decidir.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Financiamiento",texto:"El banco me ofrece tasa fija del 11%, es muy alta.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Financiamiento",texto:"No tengo el enganche completo todavía.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Producto",texto:"La casa necesita muchas remodelaciones.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Producto",texto:"Los acabados no son los que esperaba para ese precio.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Zona",texto:"Santa Fe tiene mucho tráfico y no hay metro.",zona:"Santa Fe"},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Zona",texto:"Coyoacán está bien, pero está muy lejos de mi trabajo.",zona:"Coyoacán"},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Confianza",texto:"Vi malos comentarios de esa inmobiliaria en Google.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Proceso",texto:"No quiero meterme en escrituras ni trámites complicados.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Familia",texto:"Mis suegros quieren opinar y viven en otra ciudad.",zona:null},
+  {tipo:"Venta",nivel:"Intermedio",cat:"Competencia",texto:"Otro asesor me dice que puede conseguirme algo mejor.",zona:null},
+  // VENTA - AVANZADO
+  {tipo:"Venta",nivel:"Avanzado",cat:"Precio",texto:"Tengo una oferta en efectivo de otro comprador por menos. ¿Qué me conviene más?",zona:null},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Precio",texto:"El propietario dice que no baja. Pero yo sé que lleva 8 meses en el mercado.",zona:null},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Precio",texto:"La plusvalía en Polanco ya no es lo que era. ¿Por qué pagar precio de hace 3 años?",zona:"Polanco"},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Financiamiento",texto:"Mi contador dice que es mejor rentar e invertir el capital.",zona:null},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Financiamiento",texto:"Si pago en efectivo, ¿cuánto puedo negociar realmente?",zona:null},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Tiempo",texto:"Estoy esperando que bajen los tipos de interés para comprar.",zona:null},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Zona",texto:"La Condesa se está poniendo muy cara y ya perdió su esencia.",zona:"Condesa"},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Proceso",texto:"Ya tuve una mala experiencia comprando con notario recomendado por el asesor.",zona:null},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Confianza",texto:"¿Por qué no me das acceso directo al dueño para negociar?",zona:null},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Producto",texto:"La propiedad tiene uso de suelo mixto y eso me preocupa para reventa.",zona:null},
+  {tipo:"Venta",nivel:"Avanzado",cat:"Competencia",texto:"Me ofrecen un 2% de comisión fija y tú cobras más. ¿Qué me das que ellos no?",zona:null},
+  // PREVENTA - BÁSICO
+  {tipo:"Preventa",nivel:"Básico",cat:"Confianza",texto:"¿Cómo sé que el proyecto se va a terminar?",zona:null},
+  {tipo:"Preventa",nivel:"Básico",cat:"Confianza",texto:"No conozco a esa desarrolladora.",zona:null},
+  {tipo:"Preventa",nivel:"Básico",cat:"Precio",texto:"Está caro para algo que no existe todavía.",zona:null},
+  {tipo:"Preventa",nivel:"Básico",cat:"Tiempo",texto:"No quiero esperar 2 años para tener mi depa.",zona:null},
+  {tipo:"Preventa",nivel:"Básico",cat:"Producto",texto:"No puedo ver físicamente cómo va a quedar.",zona:null},
+  {tipo:"Preventa",nivel:"Básico",cat:"Financiamiento",texto:"¿Cómo funciona el esquema de pagos en preventa?",zona:null},
+  {tipo:"Preventa",nivel:"Básico",cat:"Zona",texto:"Esa zona de Narvarte está muy saturada de edificios.",zona:"Narvarte"},
+  {tipo:"Preventa",nivel:"Básico",cat:"Proceso",texto:"¿Y si cambio de opinión antes de que entreguen?",zona:null},
+  {tipo:"Preventa",nivel:"Básico",cat:"Proceso",texto:"¿El contrato de promesa de compraventa me protege?",zona:null},
+  // PREVENTA - INTERMEDIO
+  {tipo:"Preventa",nivel:"Intermedio",cat:"Confianza",texto:"Escuché que un desarrollo de esa misma empresa se retrasó 3 años.",zona:null},
+  {tipo:"Preventa",nivel:"Intermedio",cat:"Confianza",texto:"¿El fideicomiso garantiza mi inversión si la empresa quiebra?",zona:null},
+  {tipo:"Preventa",nivel:"Intermedio",cat:"Precio",texto:"En preventa debería ser más barato que el mercado. Aquí no veo mucha diferencia.",zona:null},
+  {tipo:"Preventa",nivel:"Intermedio",cat:"Producto",texto:"Los renders se ven bien, pero los acabados finales siempre son distintos.",zona:null},
+  {tipo:"Preventa",nivel:"Intermedio",cat:"Tiempo",texto:"Para cuando entreguen puede que el mercado haya cambiado.",zona:null},
+  {tipo:"Preventa",nivel:"Intermedio",cat:"Financiamiento",texto:"¿Puedo usar INFONAVIT para pagar en preventa?",zona:null},
+  {tipo:"Preventa",nivel:"Intermedio",cat:"Zona",texto:"Santa Fe tiene problemas de movilidad. ¿Eso no afecta la plusvalía?",zona:"Santa Fe"},
+  {tipo:"Preventa",nivel:"Intermedio",cat:"Proceso",texto:"¿Qué pasa si me quedo sin trabajo y no puedo seguir pagando?",zona:null},
+  // PREVENTA - AVANZADO
+  {tipo:"Preventa",nivel:"Avanzado",cat:"Confianza",texto:"Quiero revisar el fideicomiso con mi abogado antes de firmar cualquier cosa.",zona:null},
+  {tipo:"Preventa",nivel:"Avanzado",cat:"Precio",texto:"El ROI proyectado no justifica el riesgo de construcción.",zona:null},
+  {tipo:"Preventa",nivel:"Avanzado",cat:"Producto",texto:"Las especificaciones técnicas del contrato son muy vagas. ¿Qué garantía tengo de los m²?",zona:null},
+  {tipo:"Preventa",nivel:"Avanzado",cat:"Financiamiento",texto:"Prefiero invertir ese capital en un fondo indexado con mejor liquidez.",zona:null},
+  {tipo:"Preventa",nivel:"Avanzado",cat:"Tiempo",texto:"Con la inflación actual, el poder adquisitivo que tengo hoy es mejor que el de la entrega.",zona:null},
+  {tipo:"Preventa",nivel:"Avanzado",cat:"Proceso",texto:"¿Qué penalización tiene la desarrolladora si se retrasan más de 6 meses?",zona:null},
+  {tipo:"Preventa",nivel:"Avanzado",cat:"Zona",texto:"Coyoacán no es zona de preventa tradicional. ¿Por qué están desarrollando ahí ahora?",zona:"Coyoacán"},
+  {tipo:"Preventa",nivel:"Avanzado",cat:"Competencia",texto:"Otra preventa en Condesa me da precio por m² menor con mejor amenidades.",zona:"Condesa"},
+  {tipo:"Preventa",nivel:"Avanzado",cat:"Confianza",texto:"¿Cuántos proyectos ha entregado esta desarrolladora en los últimos 5 años?",zona:null},
+  // RENTA - BÁSICO
+  {tipo:"Renta",nivel:"Básico",cat:"Precio",texto:"Está caro para lo que es.",zona:null},
+  {tipo:"Renta",nivel:"Básico",cat:"Precio",texto:"En otra app encontré algo más barato en la misma zona.",zona:null},
+  {tipo:"Renta",nivel:"Básico",cat:"Precio",texto:"¿El precio incluye mantenimiento?",zona:null},
+  {tipo:"Renta",nivel:"Básico",cat:"Producto",texto:"El departamento no tiene estacionamiento.",zona:null},
+  {tipo:"Renta",nivel:"Básico",cat:"Producto",texto:"Es muy pequeño para lo que necesito.",zona:null},
+  {tipo:"Renta",nivel:"Básico",cat:"Proceso",texto:"¿Cuántos meses de depósito me piden?",zona:null},
+  {tipo:"Renta",nivel:"Básico",cat:"Proceso",texto:"No tengo fiador. ¿Puedo rentar igual?",zona:null},
+  {tipo:"Renta",nivel:"Básico",cat:"Zona",texto:"La Condesa está muy cara para rentar.",zona:"Condesa"},
+  {tipo:"Renta",nivel:"Básico",cat:"Tiempo",texto:"¿Puedo hacer un contrato de 6 meses nada más?",zona:null},
+  {tipo:"Renta",nivel:"Básico",cat:"Confianza",texto:"¿El dueño es de confianza? No quiero que me saque a la mitad del año.",zona:null},
+  // RENTA - INTERMEDIO
+  {tipo:"Renta",nivel:"Intermedio",cat:"Precio",texto:"El precio subió 20% respecto al año pasado. No es justo.",zona:null},
+  {tipo:"Renta",nivel:"Intermedio",cat:"Precio",texto:"¿Cada año me van a subir la renta? ¿Cuánto?",zona:null},
+  {tipo:"Renta",nivel:"Intermedio",cat:"Producto",texto:"El edificio no acepta mascotas. Es un deal breaker para mí.",zona:null},
+  {tipo:"Renta",nivel:"Intermedio",cat:"Producto",texto:"No tiene buena ventilación y en verano se va a calentar mucho.",zona:null},
+  {tipo:"Renta",nivel:"Intermedio",cat:"Proceso",texto:"No quiero pagar comisión de agente. Prefiero trato directo.",zona:null},
+  {tipo:"Renta",nivel:"Intermedio",cat:"Proceso",texto:"¿Por qué el contrato es a nombre de persona física y no moral?",zona:null},
+  {tipo:"Renta",nivel:"Intermedio",cat:"Zona",texto:"Polanco está muy lejos del metro y el Uber sale caro.",zona:"Polanco"},
+  {tipo:"Renta",nivel:"Intermedio",cat:"Competencia",texto:"Airbnb en la misma zona sale más barato y sin compromiso.",zona:null},
+  {tipo:"Renta",nivel:"Intermedio",cat:"Confianza",texto:"Quiero hablar directamente con el dueño antes de firmar.",zona:null},
+  {tipo:"Renta",nivel:"Intermedio",cat:"Tiempo",texto:"Necesito entrar en 3 días. ¿Es posible?",zona:null},
+  // RENTA - AVANZADO
+  {tipo:"Renta",nivel:"Avanzado",cat:"Precio",texto:"El precio por m² en Narvarte ya supera al de Polanco de hace 5 años. Está distorsionado.",zona:"Narvarte"},
+  {tipo:"Renta",nivel:"Avanzado",cat:"Proceso",texto:"Quiero una cláusula en el contrato que me permita subarrendar en plataformas.",zona:null},
+  {tipo:"Renta",nivel:"Avanzado",cat:"Proceso",texto:"En caso de disputa, quiero arbitraje, no juzgado.",zona:null},
+  {tipo:"Renta",nivel:"Avanzado",cat:"Confianza",texto:"El dueño anterior tuvo problemas con inquilinos. ¿Cómo sé que no me hará lo mismo?",zona:null},
+  {tipo:"Renta",nivel:"Avanzado",cat:"Producto",texto:"Voy a necesitar hacer obra en el departamento. ¿El contrato lo permite?",zona:null},
+  {tipo:"Renta",nivel:"Avanzado",cat:"Competencia",texto:"Hay mucha oferta nueva en Santa Fe. ¿No me conviene esperar a que bajen más?",zona:"Santa Fe"},
+  {tipo:"Renta",nivel:"Avanzado",cat:"Precio",texto:"Con lo que pago de renta en 3 años podría tener una hipoteca. ¿Por qué no mejor compro?",zona:null},
+  {tipo:"Renta",nivel:"Avanzado",cat:"Tiempo",texto:"Solo voy a estar 4 meses. ¿Hay algo más flexible que un contrato anual?",zona:null},
+  // CAPTACIÓN - BÁSICO
+  {tipo:"Captación",nivel:"Básico",cat:"Precio",texto:"Yo sé cuánto vale mi casa y no pienso bajar el precio.",zona:null},
+  {tipo:"Captación",nivel:"Básico",cat:"Precio",texto:"Mi vecino vendió más caro hace un año. ¿Por qué yo no puedo?",zona:null},
+  {tipo:"Captación",nivel:"Básico",cat:"Confianza",texto:"No necesito asesor, yo puedo vender solo.",zona:null},
+  {tipo:"Captación",nivel:"Básico",cat:"Confianza",texto:"Ya trabajé con un agente antes y fue una mala experiencia.",zona:null},
+  {tipo:"Captación",nivel:"Básico",cat:"Proceso",texto:"¿Por qué me cobras comisión si yo ya tengo compradores?",zona:null},
+  {tipo:"Captación",nivel:"Básico",cat:"Proceso",texto:"No quiero contrato de exclusividad.",zona:null},
+  {tipo:"Captación",nivel:"Básico",cat:"Tiempo",texto:"No tengo prisa en vender. Lo dejo en el mercado y ya.",zona:null},
+  {tipo:"Captación",nivel:"Básico",cat:"Familia",texto:"Tengo que consultarlo con mis hermanos primero.",zona:null},
+  {tipo:"Captación",nivel:"Básico",cat:"Precio",texto:"La propiedad tiene valor sentimental, eso tiene un precio.",zona:null},
+  // CAPTACIÓN - INTERMEDIO
+  {tipo:"Captación",nivel:"Intermedio",cat:"Precio",texto:"El Zestimate de Zillow dice que vale más. ¿En qué me baso?",zona:null},
+  {tipo:"Captación",nivel:"Intermedio",cat:"Precio",texto:"Quiero publicar 10% más arriba para tener margen de negociación.",zona:null},
+  {tipo:"Captación",nivel:"Intermedio",cat:"Confianza",texto:"¿Cómo garantizas que vas a vender en el tiempo prometido?",zona:null},
+  {tipo:"Captación",nivel:"Intermedio",cat:"Proceso",texto:"¿Por qué la exclusividad tiene que ser de 90 días?",zona:null},
+  {tipo:"Captación",nivel:"Intermedio",cat:"Proceso",texto:"No quiero que pongas letrero afuera, me da pena con los vecinos.",zona:null},
+  {tipo:"Captación",nivel:"Intermedio",cat:"Tiempo",texto:"Acabo de publicarla yo mismo hace 2 semanas y ya tengo interesados.",zona:null},
+  {tipo:"Captación",nivel:"Intermedio",cat:"Familia",texto:"Mi hijo dice que no hay que vender ahorita.",zona:null},
+  {tipo:"Captación",nivel:"Intermedio",cat:"Competencia",texto:"Otra agencia me ofrece cobrar solo 2% de comisión.",zona:null},
+  {tipo:"Captación",nivel:"Intermedio",cat:"Producto",texto:"La propiedad tiene algunas irregularidades en papeles, pero igual se puede vender.",zona:null},
+  // CAPTACIÓN - AVANZADO
+  {tipo:"Captación",nivel:"Avanzado",cat:"Precio",texto:"Hice un análisis comparativo propio y mi precio está correcto. El mercado está equivocado.",zona:null},
+  {tipo:"Captación",nivel:"Avanzado",cat:"Confianza",texto:"¿Qué resultados tienes de los últimos 6 meses? ¿Cuántas propiedades vendiste en esta zona?",zona:null},
+  {tipo:"Captación",nivel:"Avanzado",cat:"Proceso",texto:"Quiero un contrato de exclusividad pero con cláusula de salida a los 30 días.",zona:null},
+  {tipo:"Captación",nivel:"Avanzado",cat:"Proceso",texto:"Tengo un comprador que me pagará en efectivo, sin necesidad de banco. ¿Por qué necesito a un asesor?",zona:null},
+  {tipo:"Captación",nivel:"Avanzado",cat:"Precio",texto:"La propiedad tiene uso mixto y eso la hace valer más. Tú no lo estás considerando.",zona:null},
+  {tipo:"Captación",nivel:"Avanzado",cat:"Competencia",texto:"Re/Max me ofrece su red nacional. ¿Tú qué red tienes?",zona:null},
+  {tipo:"Captación",nivel:"Avanzado",cat:"Tiempo",texto:"Si no vendes en 60 días, me voy a otra agencia. ¿Aceptas esa condición?",zona:null},
+  {tipo:"Captación",nivel:"Avanzado",cat:"Familia",texto:"Hay 4 herederos y no todos están de acuerdo con el precio ni con contratar asesor.",zona:null},
+];
+
+const CATEGORIAS = ["Precio","Tiempo","Financiamiento","Producto","Zona","Confianza","Proceso","Familia","Competencia"];
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let state = {
+  tipo:null, nivel:null, cat:null,
+  queue:[], current:0,
+  answers:[], evaluations:[]
+};
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── SELECTORS ────────────────────────────────────────────────────────────────
+function selectTipo(el,val){
+  document.querySelectorAll('#s-tipo .opt-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.tipo=val;
+  document.getElementById('btn-tipo').disabled=false;
+}
+function selectNivel(el,val){
+  document.querySelectorAll('#s-nivel .opt-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.nivel=val;
+  document.getElementById('btn-nivel').disabled=false;
+}
+
+// ── CATEGORÍAS ───────────────────────────────────────────────────────────────
+function buildCatGrid(){
+  const g=document.getElementById('cat-grid');
+  g.innerHTML='';
+  const cats=["Todas",...CATEGORIAS];
+  cats.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='opt-btn'+(c==='Todas'?' selected':'');
+    b.textContent=c;
+    b.onclick=()=>{
+      document.querySelectorAll('#cat-grid .opt-btn').forEach(x=>x.classList.remove('selected'));
+      b.classList.add('selected');
+      state.cat=c==='Todas'?null:c;
+    };
+    g.appendChild(b);
+  });
+  state.cat=null;
+}
+// rebuild on enter
+const origGoTo=goTo;
+function goTo(id){
+  if(id==='s-cat') buildCatGrid();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── SESSION ──────────────────────────────────────────────────────────────────
+function startSession(){
+  let pool=OBJECIONES.filter(o=>o.tipo===state.tipo && o.nivel===state.nivel);
+  if(state.cat) pool=pool.filter(o=>o.cat===state.cat);
+  if(pool.length===0){alert('No hay objeciones para esa combinación. Prueba otra categoría.');return;}
+  pool=shuffle(pool);
+  state.queue=pool.slice(0,10);
+  state.current=0;
+  state.answers=[];
+  state.evaluations=[];
+  showObj();
+  goTo('s-train');
+}
+
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+
+function showObj(){
+  const o=state.queue[state.current];
+  const idx=state.current;
+  document.getElementById('counter').textContent=`Objeción ${idx+1} de ${state.queue.length}`;
+  document.getElementById('prog-fill').style.width=`${((idx+1)/state.queue.length)*100}%`;
+  document.getElementById('obj-meta').textContent=`${o.tipo} · ${o.nivel} · ${o.cat}${o.zona?' · '+o.zona:''}`;
+  document.getElementById('obj-text').textContent=`"${o.texto}"`;
+  document.getElementById('user-answer').value='';
+  document.getElementById('btn-eval').disabled=false;
+}
+
+// ── EVALUATION ───────────────────────────────────────────────────────────────
+async function evalAnswer(){
+  const ans=document.getElementById('user-answer').value.trim();
+  if(!ans){alert('Escribe tu respuesta antes de evaluar.');return;}
+  const o=state.queue[state.current];
+  state.answers.push(ans);
+  document.getElementById('btn-eval').disabled=true;
+  goTo('s-result');
+  // show loading
+  document.getElementById('eval-loading').style.display='block';
+  document.getElementById('res-score').textContent='...';
+  document.getElementById('res-label').textContent='';
+  document.getElementById('res-chips').innerHTML='';
+  document.getElementById('res-analysis').textContent='';
+  document.getElementById('res-strengths').textContent='';
+  document.getElementById('res-improve').textContent='';
+  document.getElementById('res-suggested').textContent='';
+  document.getElementById('btn-next').style.display='none';
+
+  const prompt=`Eres un coach experto en ventas inmobiliarias mexicanas. Evalúa la siguiente respuesta de un asesor inmobiliario a una objeción de cliente.
+
+OBJECIÓN DEL CLIENTE: "${o.texto}"
+TIPO DE OPERACIÓN: ${o.tipo}
+NIVEL: ${o.nivel}
+CATEGORÍA: ${o.cat}
+${o.zona?`ZONA CDMX: ${o.zona}`:''}
+
+RESPUESTA DEL ASESOR: "${ans}"
+
+Evalúa usando tres metodologías:
+- AIDA (Atención, Interés, Deseo, Acción)
+- SPIN (Situation, Problem, Implication, Need-payoff)
+- Feel-Felt-Found
+
+Responde SOLO en este JSON sin ningún texto extra:
+{
+  "score": <número 0-100>,
+  "aida_score": <"alto"|"medio"|"bajo">,
+  "spin_score": <"alto"|"medio"|"bajo">,
+  "fff_score": <"alto"|"medio"|"bajo">,
+  "analisis": "<2-3 oraciones de análisis general>",
+  "fortalezas": "<1-2 fortalezas concretas>",
+  "mejoras": "<1-2 mejoras concretas y accionables>",
+  "respuesta_sugerida": "<respuesta modelo de 2-4 oraciones en español mexicano natural>"
+}`;
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODEL,max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await resp.json();
+    const raw=data.content?.[0]?.text||'';
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const ev=JSON.parse(clean);
+    ev.objText=o.texto;
+    ev.userAns=ans;
+    state.evaluations.push(ev);
+    renderResult(ev);
+  }catch(e){
+    console.error(e);
+    document.getElementById('eval-loading').style.display='none';
+    document.getElementById('res-analysis').textContent='Error al evaluar. Verifica tu conexión y vuelve a intentar.';
+    document.getElementById('btn-next').style.display='block';
+    state.evaluations.push({score:0,aida_score:'bajo',spin_score:'bajo',fff_score:'bajo',analisis:'Error de evaluación.',fortalezas:'—',mejoras:'—',respuesta_sugerida:'—',objText:o.texto,userAns:ans});
+  }
+}
+
+function chipColor(v){return v==='alto'?'green':v==='medio'?'amber':'red'}
+
+function renderResult(ev){
+  document.getElementById('eval-loading').style.display='none';
+  const score=ev.score;
+  document.getElementById('res-score').textContent=score;
+  document.getElementById('res-label').textContent=score>=80?'Excelente 🏆':score>=60?'Bien 👍':score>=40?'En desarrollo 📈':'Necesita práctica 💪';
+  document.getElementById('res-chips').innerHTML=
+    `<span class="chip ${chipColor(ev.aida_score)}">AIDA: ${ev.aida_score}</span>`+
+    `<span class="chip ${chipColor(ev.spin_score)}">SPIN: ${ev.spin_score}</span>`+
+    `<span class="chip ${chipColor(ev.fff_score)}">FFF: ${ev.fff_score}</span>`;
+  document.getElementById('res-analysis').textContent=ev.analisis;
+  document.getElementById('res-strengths').textContent=ev.fortalezas;
+  document.getElementById('res-improve').textContent=ev.mejoras;
+  document.getElementById('res-suggested').textContent=ev.respuesta_sugerida;
+  const isLast=state.current>=state.queue.length-1;
+  const btn=document.getElementById('btn-next');
+  btn.textContent=isLast?'Ver resumen final →':'Siguiente objeción →';
+  btn.style.display='block';
+}
+
+function nextObj(){
+  if(state.current>=state.queue.length-1){
+    showSummary();
+  }else{
+    state.current++;
+    showObj();
+    goTo('s-train');
+  }
+}
+
+// ── SUMMARY ──────────────────────────────────────────────────────────────────
+function showSummary(){
+  const evs=state.evaluations;
+  const avg=Math.round(evs.reduce((a,e)=>a+e.score,0)/evs.length);
+  document.getElementById('sum-score').textContent=avg;
+  document.getElementById('sum-sub').textContent=`${state.tipo} · ${state.nivel} · ${state.queue.length} objeciones completadas`;
+  const rows=document.getElementById('sum-rows');
+  rows.innerHTML='';
+  evs.forEach((ev,i)=>{
+    const d=document.createElement('div');
+    d.className='summary-row';
+    d.innerHTML=`<div class="s-obj">${i+1}. ${ev.objText.substring(0,50)}${ev.objText.length>50?'...':''}</div><div class="s-score">${ev.score}</div>`;
+    rows.appendChild(d);
+  });
+  goTo('s-summary');
+}
+
+// ── REVIEW ───────────────────────────────────────────────────────────────────
+function goReview(){
+  const list=document.getElementById('review-list');
+  list.innerHTML='';
+  state.evaluations.forEach((ev,i)=>{
+    const c=document.createElement('div');
+    c.className='review-card';
+    c.innerHTML=`
+      <div class="review-header" onclick="toggleReview(${i})">
+        <span>${i+1}. ${ev.objText.substring(0,55)}${ev.objText.length>55?'...':''}</span>
+        <span style="color:var(--wine);font-weight:800">${ev.score} ▾</span>
+      </div>
+      <div class="review-body" id="rev-${i}">
+        <div class="method-chips" style="margin-top:8px">
+          <span class="chip ${chipColor(ev.aida_score)}">AIDA: ${ev.aida_score}</span>
+          <span class="chip ${chipColor(ev.spin_score)}">SPIN: ${ev.spin_score}</span>
+          <span class="chip ${chipColor(ev.fff_score)}">FFF: ${ev.fff_score}</span>
+        </div>
+        <div class="tag">Tu respuesta</div>
+        <p style="margin-bottom:12px;font-size:.85rem">${ev.userAns}</p>
+        <div class="tag">Respuesta sugerida</div>
+        <p style="margin-bottom:12px;font-size:.85rem">${ev.respuesta_sugerida}</p>
+        <div style="font-size:.82rem;color:var(--gray)">${ev.analisis}</div>
+      </div>`;
+    list.appendChild(c);
+  });
+  goTo('s-review');
+}
+function toggleReview(i){
+  const b=document.getElementById('rev-'+i);
+  b.classList.toggle('open');
+}
+
+// ── RESTART ──────────────────────────────────────────────────────────────────
+function restart(){
+  state={tipo:null,nivel:null,cat:null,queue:[],current:0,answers:[],evaluations:[]};
+  document.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('btn-tipo').disabled=true;
+  document.getElementById('btn-nivel').disabled=true;
+  goTo('s-home');
+}
+</script>
+</body>
+</html>
